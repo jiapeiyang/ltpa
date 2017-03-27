@@ -7,7 +7,7 @@
 
 
 ## 安装
-`npm install ltpa --save`
+`npm install ltpa-token --save`
 
 ## 初始化
 ```javascript
