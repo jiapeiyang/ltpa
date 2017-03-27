@@ -1,17 +1,5 @@
 "use strict";
 
-let ltpa = module.exports;
-
-ltpa.generate = generate;
-ltpa.generateUserNameBuf = generateUserNameBuf;
-ltpa.getUserNameBuf = getUserNameBuf;
-ltpa.getUserName = getUserName;
-ltpa.refresh = refresh;
-ltpa.setGracePeriod = setGracePeriod;
-ltpa.setSecrets = setSecrets;
-ltpa.setValidity = setValidity;
-ltpa.validate = validate;
-
 /**
  * LtpaToken generator and verifier
  */
@@ -20,30 +8,33 @@ let crypto = require("crypto");
 let iconv = require('iconv-lite');
 
 let ltpaSecrets;
-let validity = 5400;
+// 默认过期时间为43200秒(12小时)
+let validity = 43200;
+// 过期后的这个时间内仍然有效，默认300秒(5分钟)
 let gracePeriod = 300;
 
 /***
- * Set how long a generated token is valid. Default is 5400 seconds (90 minutes)
- * @param {number} seconds Number of seconds that tokens are valid
+ * 设置过期时间，秒
+ * 默认为43200秒(12小时)
+ * @param {number} seconds 秒
  */
 function setValidity(seconds) {
     validity = seconds;
 }
 
 /***
- * Set the amount of time outside a ticket's validity that we will still accept it.
- * This time is also added to the validity of tokens that we generate
- * Default is 300 seconds (5 minutes).
- * @param {number} seconds Number of seconds grace
+ * 设置一个时间，当有效期过了的这段时间内仍然有效
+ * 校验token的时候也会把这个时间计算进去
+ * 默认为300秒()
+ * @param {number} seconds 秒
  */
 function setGracePeriod(seconds) {
     gracePeriod = seconds;
 }
 
 /***
- * Set the ltpa secrets
- * @param {object} secrets domain to secret (base64) mapping
+ * 设置秘钥
+ * @param {string} secrets 秘钥
  */
 function setSecrets(secrets) {
     ltpaSecrets = secrets;
@@ -62,11 +53,10 @@ function generateUserNameBuf(userName) {
 /***
  * Generate an LtpaToken suitable for writing to a cookie
  * @param {buffer} userName The username for whom the cookie is signed
- * @param {string} domain The domain for which the cookie is generated
  * @param {number} timeStart Timestamp (seconds) for when the token validity should start. Default: now
  * @returns {string} The LtpaToken encoded as Base64
  */
-function generate(userNameBuf, domain, timeStart) {
+function generate(userNameBuf, secret, timeStart) {
     let start = timeStart ? timeStart : Math.floor(Date.now() / 1000);
 
     let timeCreation = (start - gracePeriod).toString(16);
@@ -79,7 +69,7 @@ function generate(userNameBuf, domain, timeStart) {
     ltpaToken.write(timeCreation, 4);
     ltpaToken.write(timeExpiration, 12);
     userNameBuf.copy(ltpaToken, 20);
-    let serverSecret = ltpaSecrets[domain];
+    let serverSecret = secret || ltpaSecrets;
     ltpaToken.write(serverSecret, size - 20, "base64");
 
     let hash = crypto.createHash("sha1");
@@ -94,21 +84,24 @@ function generate(userNameBuf, domain, timeStart) {
 };
 
 /***
- * Validate a token. Throws an error if validation fails.
- * @param {string} token The LtpaToken string in Base64 encoded format
- * @param {string} domain The id of the key for which to validate the provided token
+ * 校验token过期时间、用户身份
+ * @param {string} token
  */
-function validate(token, domain) {
+function validate(token, secret) {
     let ltpaToken;
     ltpaToken = new Buffer(token, "base64");
 
     if (ltpaToken.length < 41) {
         // userName must be at least one character long
-        throw new Error("Ltpa Token too short");
+        return {
+            code: -1,
+            data: 'token too short'
+        }
     }
 
     let signature = ltpaToken.toString("hex", ltpaToken.length - 20);
-    let serverSecret = ltpaSecrets[domain];
+    let serverSecret = secret || ltpaSecrets;
+    console.log(serverSecret)
     ltpaToken.write(serverSecret, ltpaToken.length - 20, "base64");
 
     let hash = crypto.createHash("sha1");
@@ -116,12 +109,18 @@ function validate(token, domain) {
 
     let hexDigest = hash.digest("hex");
     if (hexDigest !== signature) {
-        throw new Error("Ltpa Token signature doesn't validate");
+        return {
+            code: -2,
+            data: 'token 签名错误'
+        }
     }
     let version = ltpaToken.toString("hex", 0, 4);
     if (version !== "00010203") {
         console.log(version);
-        throw new Error("Incorrect magic string");
+        return {
+            code: -3,
+            data: `${version}不正确`
+        }
     }
 
     let timeCreation = parseInt(ltpaToken.toString("utf8", 4, 12), 16);
@@ -129,11 +128,21 @@ function validate(token, domain) {
     let now = Math.floor(Date.now() / 1000);
 
     if (timeCreation > (now + gracePeriod)) {
-        throw new Error("Ltpa Token not yet valid");
+        return {
+            code: -4,
+            data: 'token创建时间不正确'
+        }
     }
 
     if ((timeCreation + validity) < (now - gracePeriod)) {
-        throw new Error("Ltpa Token has expired");
+        return {
+            code: -5,
+            data: 'token时间过期'
+        }
+    }
+    return {
+        code: 0,
+        data: getUserName(token)
     }
 };
 
@@ -155,16 +164,25 @@ function getUserName(token) {
     return iconv.decode(getUserNameBuf(token), "ibm850");
 };
 
-/***
- * Refresh token if it's valid. Otherwise, throw an error.
- * @param {string} token The LtpaToken string in Base64 encoded format
- * @returns {string} The refreshed LtpaToken, or throw an exception
+/**
+ * 刷新token，相当于新生成一个token
+ * @param {string} user
+ * @return {string} base64的token
  */
-function refresh(token, domain) {
-    if (!token) {
-        throw new Error("No token provided");
+function refresh(user, secret) {
+    if (!user) {
+        return
     }
+    return generate(generateUserNameBuf(user), secret);
+}
 
-    validate(token, domain);
-    return generate(getUserNameBuf(token), domain);
-};
+
+let ltpa = module.exports;
+
+ltpa.refresh = refresh;
+ltpa.validate = validate;
+ltpa.init = function (options) {
+    setValidity(options.validity || validity)
+    setGracePeriod(options.gracePeriod || gracePeriod)
+    setSecrets(options.secret)
+}
