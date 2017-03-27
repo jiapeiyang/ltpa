@@ -86,6 +86,8 @@ function generate(userNameBuf, secret, timeStart) {
 /***
  * 校验token过期时间、用户身份
  * @param {string} token
+ * @param {string} secret 可选，秘钥
+ * @return {object}
  */
 function validate(token, secret) {
     let ltpaToken;
@@ -101,7 +103,6 @@ function validate(token, secret) {
 
     let signature = ltpaToken.toString("hex", ltpaToken.length - 20);
     let serverSecret = secret || ltpaSecrets;
-    console.log(serverSecret)
     ltpaToken.write(serverSecret, ltpaToken.length - 20, "base64");
 
     let hash = crypto.createHash("sha1");
@@ -165,24 +166,38 @@ function getUserName(token) {
 };
 
 /**
- * 刷新token，相当于新生成一个token
- * @param {string} user
+ * 刷新token
+ * @param {string} token
+ * @param {string} secret 可选，秘钥
  * @return {string} base64的token
  */
-function refresh(user, secret) {
-    if (!user) {
+function refresh(token, secret) {
+    if (!token) {
         return
     }
-    return generate(generateUserNameBuf(user), secret);
+    return generateToken(getUserNameBuf(token), secret);
+}
+/**
+ * 生成一个token
+ * @param {string} user 用户标识
+ * @param {string} secret 可选，秘钥
+ * @return {string} base64的token
+ */
+function generateToken(user, secret, timeStart) {
+    if (!user) {
+        return;
+    }
+    return generate(generateUserNameBuf(user), secret, timeStart);
 }
 
 
 let ltpa = module.exports;
 
 ltpa.refresh = refresh;
+ltpa.generate = generateToken;
 ltpa.validate = validate;
 ltpa.init = function (options) {
-    setValidity(options.validity || validity)
-    setGracePeriod(options.gracePeriod || gracePeriod)
-    setSecrets(options.secret)
+    setValidity(options.validity || validity);
+    setGracePeriod(options.gracePeriod || gracePeriod);
+    setSecrets(options.secret);
 }

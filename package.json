@@ -1,6 +1,6 @@
 {
-    "name": "ltpa",
-    "version": "0.1.5",
+    "name": "ltpa-token",
+    "version": "1.0.0",
     "description": "Ltpa token generation and validation",
     "main": "index.js",
     "scripts": {
@@ -8,7 +8,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/markusberg/ltpa.git"
+        "url": "git+https://github.com/landray/ltpa.git"
     },
     "keywords": [
         "ltpa",
@@ -19,12 +19,12 @@
         "ibm",
         "websphere"
     ],
-    "author": "Markus Berg <markus.berg@sectra.com>",
+    "author": "landray",
     "license": "Apache-2.0",
     "bugs": {
-        "url": "https://github.com/markusberg/ltpa/issues"
+        "url": "https://github.com/landray/ltpa/issues"
     },
-    "homepage": "https://github.com/markusberg/ltpa#readme",
+    "homepage": "https://github.com/landray/ltpa#readme",
     "dependencies": {
         "iconv-lite": "~0.4.10"
     },

@@ -1,7 +1,10 @@
 # ltpa
 
-A small library for generating and validating ltpa tokens. Based on the 
+> A small library for generating and validating ltpa tokens. Based on the 
 [IBM specification](http://www-12.lotus.com/ldd/doc/tools/c/7.0/api70ug.nsf/85255d56004d2bfd85255b1800631684/ceda2cb8df47607f85256c3d005f816d).
+
+> refer to [markusberg/ltpa](https://github.com/markusberg/ltpa/)
+
 
 ## 安装
 `npm install ltpa --save`
