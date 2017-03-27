@@ -181,6 +181,7 @@ function refresh(token, secret) {
  * 生成一个token
  * @param {string} user 用户标识
  * @param {string} secret 可选，秘钥
+ * @param {number} timeStart token的开始时间，默认为now
  * @return {string} base64的token
  */
 function generateToken(user, secret, timeStart) {

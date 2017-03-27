@@ -28,6 +28,18 @@ ltpa.init({
 
 ## api
 
+### generate
+```javascript
+/**
+ * 生成token
+ */
+var result = ltpa.generate(userName[, secret, timeStart])
+```
+
+- `userName`：存储到token的用户信息。string
+- `secret`：可选，不加将使用初始化设置的secret.使用secret作为密钥生成token。string
+- `timeStart`：可选，token的开始时间，默认为now。number
+
 ### validate
 ```javascript
 /**
@@ -41,7 +53,7 @@ var result = ltpa.validate(token[, secret])
 ```
 
 - `token`：token字符串。string
-- `secret`：可选，使用secret作为密钥校验。string
+- `secret`：可选，不加将使用初始化设置的secret.使用secret作为密钥校验。string
 
 ### refresh
 ```javascript
@@ -54,4 +66,4 @@ var token = ltpa.refresh(user[, secret])
 ```
 
 - `user`：user信息
-- `secret`：可选，使用secret作为密钥生成token。string
+- `secret`：可选，不加将使用初始化设置的secret.使用secret作为密钥生成token。string
