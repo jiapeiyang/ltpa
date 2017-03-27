@@ -1,6 +1,6 @@
 {
   "name": "ltpa-token",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Ltpa token generation and validation",
   "main": "index.js",
   "scripts": {

@@ -11,7 +11,7 @@
 
 ## 初始化
 ```javascript
-var ltpa = require('ltpa')
+var ltpa = require('ltpa-token')
 
 ltpa.init({
   secret: ,
